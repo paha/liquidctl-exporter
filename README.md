@@ -21,7 +21,7 @@ cd liquidctl-exporter
 # Build
 go build ./liquidctl-exporter.go
 # Install
-sudo copy ./liquidctl-exporter /usr/local/bin
+sudo cp ./liquidctl-exporter /usr/local/bin
 # Setup systemd service
 sudo cat << SERVICE > /etc/systemd/system/liquidctl-exporter.service
 [Unit]
@@ -43,7 +43,7 @@ systemctl start liquidctl-exporter
 # service status
 systemctl status liquidctl-exporter
 # service logs
-journalctl -s liquidctl-exporter
+journalctl -u liquidctl-exporter
 # Preview exposed metrics
 curl http://localhost:9530/metrics | grep liquidctl
 ```
