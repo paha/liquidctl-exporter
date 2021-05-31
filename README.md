@@ -27,7 +27,6 @@ sudo cat << SERVICE > /etc/systemd/system/liquidctl-exporter.service
 [Unit]
 Description=Liquidctl prometheus exporter
 [Service]
-Type=oneshot
 ExecStart=/usr/local/bin/liquidctl-exporter
 [Install]
 WantedBy=default.target
