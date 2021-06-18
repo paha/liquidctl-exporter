@@ -52,9 +52,11 @@ var devices = map[string]map[string]prometheus.Gauge{}
 var path string
 
 func init() {
-	path, ok := os.LookupEnv(envPath)
+	p, ok := os.LookupEnv(envPath)
 	if !ok {
 		path = defaultLiquidCMD
+	} else {
+	        path = p
 	}
 	log.Infof("liquidctl configured path, %s", path)
 
