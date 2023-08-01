@@ -30,7 +30,7 @@ var (
 	defaultLiquidCMD = "/usr/local/bin/liquidctl"
 )
 
-// liquidctl statistic object as of v1.6.x
+// liquidctl statistic object as of v1.6.x.
 type liquidctlStatistic struct {
 	Bus         string   `json:"bus"`
 	Address     string   `json:"address"`
@@ -38,11 +38,11 @@ type liquidctlStatistic struct {
 	Status      []status `json:"status"`
 }
 
-// liquidctl status
+// liquidctl status.
 type status struct {
-	Key   string  `json:"key"`
-	Value float64 `json:"value"`
-	Unit  string  `json:"unit"`
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"` // liquidctl also send string metrics
+	Unit  string      `json:"unit"`
 }
 
 // Metrics store per device ({deviceID: {metricID: prom.Gauge}})
@@ -56,7 +56,7 @@ func init() {
 	if !ok {
 		path = defaultLiquidCMD
 	} else {
-	        path = p
+		path = p
 	}
 	log.Infof("liquidctl configured path, %s", path)
 
@@ -66,14 +66,21 @@ func init() {
 		devices[dname] = map[string]prometheus.Gauge{}
 		for _, m := range d.Status {
 			name := metricName(m.Key, dname)
-			log.Infof("Registering metric %s for %s device", name, dname)
-			devices[dname][name] = prometheus.NewGauge(
-				prometheus.GaugeOpts{
-					Name: name,
-					Help: fmt.Sprintf("%s %s (%s).", d.Description, m.Key, m.Unit),
-				},
-			)
-			prometheus.MustRegister(devices[dname][name])
+
+			// Register metrics based on type.
+			switch t := m.Value.(type) {
+			case float64:
+				log.Infof("Registering metric '%s' for '%s' device", name, dname)
+				devices[dname][name] = prometheus.NewGauge(
+					prometheus.GaugeOpts{
+						Name: name,
+						Help: fmt.Sprintf("%s %s (%s).", d.Description, m.Key, m.Unit),
+					},
+				)
+				prometheus.MustRegister(devices[dname][name])
+			default: // Currently only float64 are implemented
+				log.Warnf("Registering metric '%s' for '%s' device failed since liquidctrl-exported does not yet support metrics of type '%T!'\n", name, dname, t)
+			}
 		}
 	}
 }
@@ -111,7 +118,12 @@ func main() {
 			dname := deviceName(d.Address)
 			for _, m := range d.Status {
 				name := metricName(m.Key, dname)
-				devices[dname][name].Set(m.Value)
+
+				// Push metric to db if it was registered
+				_, ok := devices[dname][name]
+				if ok {
+					devices[dname][name].Set(m.Value.(float64))
+				}
 			}
 		}
 
