@@ -69,6 +69,29 @@ Should work on Windows and MacOS as long as the proper path to the liquidctl exc
 - test on Windows and MacOS
 ---
 
+### Docker container
+
+The repository also contains a Dockerfile for building a container image. The image is not yet published to a registry, but can be built locally using the following docker compose file:
+
+```shell
+version: "3.8"
+
+services:
+  liquidctl-exporter:
+    build:
+      context: ./exporters/liquidctl-exporter
+    image: liquidctl-exporter
+    container_name: liquidctl-exporter
+    ports:
+      - "9530:9530"
+    privileged: true
+    restart: unless-stopped
+    network_mode: host
+```
+
+> [!NOTE]\
+> The container needs to be run in privileged mode to be able to access the USB devices.
+
 ## Examples
 
 Metrics exposed with a single Corsair Commander Pro device:
