@@ -46,7 +46,7 @@ type status struct {
 }
 
 // Metrics store per device ({deviceID: {metricID: prom.Gauge}})
-var devices = map[string]map[string]prometheus.Gauge{}
+var devices = map[string]map[string]*prometheus.GaugeVec{}
 
 // path to liquidctl executable
 var path string
@@ -63,7 +63,7 @@ func init() {
 	// Register metrics available for each liquidctl device
 	for _, d := range liquidctl_stats() {
 		dname := deviceName(d.Address)
-		devices[dname] = map[string]prometheus.Gauge{}
+		devices[dname] = map[string]*prometheus.GaugeVec{}
 		for _, m := range d.Status {
 			name := metricName(m.Key, dname)
 
@@ -71,11 +71,12 @@ func init() {
 			switch t := m.Value.(type) {
 			case float64:
 				log.Infof("Registering metric '%s' for '%s' device", name, dname)
-				devices[dname][name] = prometheus.NewGauge(
+				devices[dname][name] = prometheus.NewGaugeVec(
 					prometheus.GaugeOpts{
 						Name: name,
 						Help: fmt.Sprintf("%s %s (%s).", d.Description, m.Key, m.Unit),
 					},
+					[]string{"device"},
 				)
 				prometheus.MustRegister(devices[dname][name])
 			default: // Currently only float64 are implemented
@@ -122,7 +123,7 @@ func main() {
 				// Push metric to db if it was registered
 				_, ok := devices[dname][name]
 				if ok {
-					devices[dname][name].Set(m.Value.(float64))
+					devices[dname][name].WithLabelValues(dname).Set(m.Value.(float64))
 				}
 			}
 		}
